@@ -1,0 +1,33 @@
+# DocuRural — Terraform .gitignore
+# Archivos que NUNCA deben subirse al repositorio
+
+# Valores reales de variables (contienen contraseñas e IPs)
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example   # La plantilla SÍ se sube
+
+# Estado de Terraform (contiene valores sensibles en texto plano)
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Directorio de plugins y módulos descargados
+.terraform/
+.terraform.lock.hcl
+
+# Clave privada SSH (si alguien la guarda aquí por error)
+*.pem
+*.key
+*_rsa
+*_ed25519
+
+# Logs locales
+*.log
+crash.log
+crash.*.log
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
