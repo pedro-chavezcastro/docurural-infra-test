@@ -17,6 +17,7 @@
 #   ${domain_name}         — dominio de Route 53 (ej: pruebas.ccplsolutions.link)
 #   ${github_pat}          — PAT de GitHub para registrar el runner self-hosted
 #   ${github_repo}         — Repositorio GitHub en formato owner/repo
+#   ${github_repo_frontend}— Repositorio frontend en formato owner/repo
 ################################################################################
 
 set -euo pipefail
@@ -29,23 +30,29 @@ echo "======================================================================"
 # ------------------------------------------------------------------------------
 # 1. Actualizar el sistema
 # ------------------------------------------------------------------------------
-echo "[1/9] Actualizando el sistema..."
+echo "[1/11] Actualizando el sistema..."
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y curl wget unzip
 
 # ------------------------------------------------------------------------------
-# 2. Instalar Java 17
+# 2. Instalar Java 17 (OpenJDK), Maven y Node.js
 # ------------------------------------------------------------------------------
-echo "[2/9] Instalando Java 17..."
+echo "[2/11] Instalando Java 17, Maven y Node.js..."
 apt-get install -y openjdk-17-jdk maven
 java -version
 mvn -version
 
+# Node.js 20 LTS — requerido para el build del frontend Angular
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+node -v
+npm -v
+
 # ------------------------------------------------------------------------------
 # 3. Instalar y configurar PostgreSQL
 # ------------------------------------------------------------------------------
-echo "[3/9] Instalando PostgreSQL..."
+echo "[3/11] Instalando PostgreSQL..."
 apt-get install -y postgresql postgresql-contrib
 systemctl enable postgresql
 systemctl start postgresql
@@ -79,7 +86,7 @@ ss -tlnp | grep 5432
 # ------------------------------------------------------------------------------
 # 4. Instalar Nginx
 # ------------------------------------------------------------------------------
-echo "[4/9] Instalando Nginx..."
+echo "[4/11] Instalando Nginx..."
 apt-get install -y nginx
 systemctl enable nginx
 systemctl start nginx
@@ -87,14 +94,14 @@ systemctl start nginx
 # ------------------------------------------------------------------------------
 # 5. Crear estructura de directorios
 # ------------------------------------------------------------------------------
-echo "[5/9] Creando estructura de directorios..."
+echo "[5/11] Creando estructura de directorios..."
 mkdir -p /opt/docurural/{backend,frontend,uploads/documents,logs}
 chown -R ubuntu:ubuntu /opt/docurural
 
 # ------------------------------------------------------------------------------
 # 6. Crear archivo .env
 # ------------------------------------------------------------------------------
-echo "[6/9] Creando archivo .env..."
+echo "[6/11] Creando archivo .env..."
 cat > /opt/docurural/backend/.env <<ENV
 # Base de datos
 DB_HOST=localhost
@@ -128,7 +135,7 @@ chown ubuntu:ubuntu /opt/docurural/backend/.env
 # ------------------------------------------------------------------------------
 # 7. Crear servicio systemd
 # ------------------------------------------------------------------------------
-echo "[7/9] Creando servicio systemd..."
+echo "[7/11] Creando servicio systemd..."
 cat > /etc/systemd/system/docurural.service <<SERVICE
 [Unit]
 Description=DocuRural API - Spring Boot (Test)
@@ -156,7 +163,7 @@ systemctl daemon-reload
 # ------------------------------------------------------------------------------
 # 8. Configurar Nginx
 # ------------------------------------------------------------------------------
-echo "[8/9] Configurando Nginx..."
+echo "[8/11] Configurando Nginx..."
 
 cat > /etc/nginx/sites-available/docurural <<NGINX
 server {
@@ -191,7 +198,7 @@ systemctl reload nginx
 # ------------------------------------------------------------------------------
 # 9. Instalar y registrar el runner self-hosted de GitHub Actions
 # ------------------------------------------------------------------------------
-echo "[9/9] Instalando runner de GitHub Actions..."
+echo "[9/11] Instalando runner de GitHub Actions..."
 
 # Dependencias del runner
 apt-get install -y jq libicu-dev
@@ -201,10 +208,12 @@ useradd -m -s /bin/bash github-runner || true
 
 # Ahora que el usuario existe, asignarle el directorio de despliegue
 chown github-runner:github-runner /opt/docurural/backend
+chown github-runner:github-runner /opt/docurural/frontend
 
 # Permitir al usuario ubuntu escribir en el directorio (para despliegues manuales)
 usermod -aG github-runner ubuntu
 chmod g+w /opt/docurural/backend
+chmod g+w /opt/docurural/frontend
 
 # Directorio del runner
 mkdir -p /opt/github-runner
@@ -252,16 +261,60 @@ sudo -u github-runner /opt/github-runner/config.sh \
 
 echo "Runner registrado y activo."
 
+# ------------------------------------------------------------------------------
+# Runner para docurural-frontend (segundo runner en el mismo EC2)
+# ------------------------------------------------------------------------------
+echo "Instalando runner para docurural-frontend..."
+
+mkdir -p /opt/github-runner-frontend
+cd /opt/github-runner-frontend
+
+curl -fsSL -o actions-runner.tar.gz \
+  "https://github.com/actions/runner/releases/download/v$${RUNNER_VERSION}/actions-runner-linux-x64-$${RUNNER_VERSION}.tar.gz"
+tar xzf actions-runner.tar.gz
+rm actions-runner.tar.gz
+chown -R github-runner:github-runner /opt/github-runner-frontend
+
+# Obtener token de registro para docurural-frontend
+echo "Obteniendo token de registro para frontend..."
+REGISTRATION_TOKEN_FRONTEND=$(curl -fsSL -X POST \
+  -H "Authorization: token ${github_pat}" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/${github_repo_frontend}/actions/runners/registration-token" \
+  | jq -r '.token')
+
+if [ -z "$REGISTRATION_TOKEN_FRONTEND" ] || [ "$REGISTRATION_TOKEN_FRONTEND" = "null" ]; then
+  echo "ERROR: No se pudo obtener el token de registro del frontend. Verificar el PAT y el repositorio."
+  exit 1
+fi
+
+# Registrar el runner del frontend
+echo "Registrando runner 'docurural-qa-runner-frontend'..."
+sudo -u github-runner /opt/github-runner-frontend/config.sh \
+  --url "https://github.com/${github_repo_frontend}" \
+  --token "$REGISTRATION_TOKEN_FRONTEND" \
+  --name "docurural-qa-runner-frontend" \
+  --labels "qa,docurural-frontend" \
+  --runnergroup "Default" \
+  --unattended \
+  --replace
+
+# Instalar como servicio systemd y arrancar
+/opt/github-runner-frontend/svc.sh install github-runner
+/opt/github-runner-frontend/svc.sh start
+
+echo "Runner frontend registrado y activo."
+
 # Permitir al runner ejecutar únicamente comandos del servicio docurural sin contraseña
 cat > /etc/sudoers.d/github-runner <<'SUDOERS'
-github-runner ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable docurural, /usr/bin/systemctl disable docurural, /usr/bin/systemctl start docurural, /usr/bin/systemctl stop docurural, /usr/bin/systemctl restart docurural, /usr/bin/systemctl status docurural, /usr/bin/systemctl status docurural *, /usr/bin/systemctl is-active docurural, /usr/bin/systemctl is-active docurural *, /usr/bin/systemctl daemon-reload
+github-runner ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable docurural, /usr/bin/systemctl disable docurural, /usr/bin/systemctl start docurural, /usr/bin/systemctl stop docurural, /usr/bin/systemctl restart docurural, /usr/bin/systemctl status docurural, /usr/bin/systemctl status docurural *, /usr/bin/systemctl is-active docurural, /usr/bin/systemctl is-active docurural *, /usr/bin/systemctl daemon-reload, /usr/sbin/nginx
 SUDOERS
 chmod 440 /etc/sudoers.d/github-runner
 
 # ------------------------------------------------------------------------------
 # 10. Descargar el JAR más reciente de GitHub Packages y arrancar el servicio
 # ------------------------------------------------------------------------------
-echo "[10/10] Intentando descargar el JAR más reciente de GitHub Packages..."
+echo "[10/11] Intentando descargar el JAR más reciente de GitHub Packages..."
 
 # Extraer el owner del github_repo (formato owner/repo)
 GITHUB_OWNER=$(echo "${github_repo}" | cut -d'/' -f1)
@@ -332,6 +385,61 @@ rm -f /tmp/settings-download.xml
 rm -rf /tmp/docurural-download
 
 # ------------------------------------------------------------------------------
+# 11. Descargar y desplegar el frontend desde GitHub
+# ------------------------------------------------------------------------------
+echo "[11/11] Intentando desplegar el frontend desde GitHub..."
+
+# Verificar si existe código en la rama develop del frontend
+FRONTEND_SHA=$(curl -fsSL \
+  -H "Authorization: token ${github_pat}" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/${github_repo_frontend}/commits/develop" \
+  2>/dev/null | jq -r '.sha // empty')
+
+if [ -z "$FRONTEND_SHA" ]; then
+  echo "ADVERTENCIA: No se encontró código en la rama develop de docurural-frontend."
+  echo "  El frontend NO se desplegará ahora."
+  echo "  Se desplegará automáticamente tras el primer push a 'develop'."
+else
+  echo "Código encontrado en develop (commit: $FRONTEND_SHA). Clonando repositorio..."
+
+  # Clonar solo la rama develop (sin historial completo para ahorrar espacio)
+  sudo -u github-runner git clone \
+    --branch develop \
+    --depth 1 \
+    "https://x-access-token:${github_pat}@github.com/${github_repo_frontend}.git" \
+    /tmp/docurural-frontend-build
+
+  # Instalar dependencias y construir
+  echo "Instalando dependencias npm..."
+  cd /tmp/docurural-frontend-build
+  sudo -u github-runner npm ci
+
+  echo "Ejecutando ng build..."
+  sudo -u github-runner npm run build -- --configuration production
+
+  # Verificar que el build generó archivos
+  if [ -d "/tmp/docurural-frontend-build/dist/docurural-frontend/browser" ]; then
+    # Limpiar build anterior y copiar el nuevo
+    rm -rf /opt/docurural/frontend/dist
+    mkdir -p /opt/docurural/frontend/dist/browser
+    cp -r /tmp/docurural-frontend-build/dist/docurural-frontend/browser/. /opt/docurural/frontend/dist/browser/
+    chown -R github-runner:github-runner /opt/docurural/frontend/dist
+    echo "Frontend desplegado correctamente."
+
+    # Recargar Nginx para servir el nuevo build
+    nginx -s reload
+    echo "Nginx recargado."
+  else
+    echo "ADVERTENCIA: El build no generó la carpeta dist/browser esperada."
+    echo "  Verificar el angular.json del proyecto frontend."
+  fi
+
+  # Limpiar archivos temporales
+  rm -rf /tmp/docurural-frontend-build
+fi
+
+# ------------------------------------------------------------------------------
 # Finalización
 # ------------------------------------------------------------------------------
 echo "======================================================================"
@@ -354,6 +462,9 @@ echo "  Nombre:      docurural-qa-runner"
 echo "  Labels:      qa, docurural-backend"
 echo "  Repositorio: https://github.com/${github_repo}"
 echo "  Estado:      https://github.com/${github_repo}/settings/actions/runners"
+echo "  Runner frontend: docurural-qa-runner-frontend"
+echo "  Labels frontend: qa, docurural-frontend"
+echo "  Estado frontend: https://github.com/${github_repo_frontend}/settings/actions/runners"
 echo ""
 echo "APLICACIÓN:"
 echo "  JAR:         /opt/docurural/backend/docurural-api.jar"
@@ -368,6 +479,8 @@ echo "  Estado del servicio:      sudo systemctl status docurural"
 echo "  Reiniciar servicio:       sudo systemctl restart docurural"
 echo "  Estado del runner:        sudo systemctl status actions.runner.*.docurural-qa-runner"
 echo "  Reiniciar runner:         sudo systemctl restart actions.runner.*.docurural-qa-runner"
+echo "  Estado runner frontend:   sudo systemctl status actions.runner.*.docurural-qa-runner-frontend"
+echo "  Logs frontend:            ls -lh /opt/docurural/frontend/dist/browser/"
 echo "  Conectar a PostgreSQL:    sudo -u postgres psql -d docurural_db"
 echo ""
 echo "FLUJO CI/CD:"
