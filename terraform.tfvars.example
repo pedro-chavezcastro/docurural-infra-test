@@ -50,3 +50,6 @@ github_pat = "SuPersonalAccesToken"
 
 # Repositorio de GitHub para despliegue automático (formato: usuario/repositorio)
 github_repo = "miusuario/docurural-backend"
+
+# Repositorio del frontend (formato: usuario/repositorio)
+github_repo_frontend = "pedro-chavezcastro/docurural-frontend"

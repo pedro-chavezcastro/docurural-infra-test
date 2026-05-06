@@ -110,3 +110,9 @@ variable "github_repo" {
   type        = string
   default     = "miusuario/docurural-backend"
 }
+
+variable "github_repo_frontend" {
+  description = "Repositorio frontend GitHub en formato owner/repo"
+  type        = string
+  default     = "pedro-chavezcastro/docurural-frontend"
+}
