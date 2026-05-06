@@ -125,6 +125,8 @@ resource "aws_instance" "docurural_test" {
     admin_seed_password  = var.admin_seed_password
     jwt_secret           = var.jwt_secret
     domain_name          = var.domain_name
+    github_pat           = var.github_pat
+    github_repo          = var.github_repo
   })
 
   # Almacenamiento raíz: 20 GB gp3

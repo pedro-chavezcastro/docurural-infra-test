@@ -44,3 +44,9 @@ admin_seed_password = "Admin2026!"
 # Clave secreta JWT (mínimo 32 caracteres, usar una cadena aleatoria larga)
 # Generar con: openssl rand -base64 48
 jwt_secret = "DocuRuralTestSecretCambiarPorUnaClaveSeguraYLarga2026"
+
+# Token de acceso personal de GitHub (con permisos de repo)
+github_pat = "SuPersonalAccesToken"
+
+# Repositorio de GitHub para despliegue automático (formato: usuario/repositorio)
+github_repo = "miusuario/docurural-backend"

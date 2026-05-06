@@ -98,3 +98,15 @@ variable "jwt_secret" {
     error_message = "El JWT secret debe tener al menos 32 caracteres para ser seguro."
   }
 }
+
+variable "github_pat" {
+  description = "PAT de GitHub para registrar el runner self-hosted"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_repo" {
+  description = "Repositorio en formato owner/repo (ej: miusuario/docurural-backend)"
+  type        = string
+  default     = "miusuario/docurural-backend"
+}
