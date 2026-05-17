@@ -116,7 +116,7 @@ JWT_EXPIRATION_MS=1800000
 JWT_ISSUER=docurural
 
 # Almacenamiento
-UPLOAD_PATH=/opt/docurural/uploads/documents
+DOCURURAL_STORAGE_BASE_PATH=/opt/docurural/uploads/documents
 
 # Admin inicial (solo se usa en el primer arranque via Flyway seed)
 ADMIN_SEED_EMAIL=${admin_seed_email}
@@ -167,6 +167,9 @@ echo "[8/11] Configurando Nginx..."
 
 cat > /etc/nginx/sites-available/docurural <<NGINX
 server {
+
+    client_max_body_size 10M;
+
     listen 80;
     server_name ${domain_name};
 
