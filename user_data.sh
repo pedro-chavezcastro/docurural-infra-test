@@ -167,9 +167,6 @@ echo "[8/11] Configurando Nginx..."
 
 cat > /etc/nginx/sites-available/docurural <<NGINX
 server {
-
-    client_max_body_size 10M;
-
     listen 80;
     server_name ${domain_name};
 
@@ -189,6 +186,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_connect_timeout 60s;
         proxy_read_timeout 60s;
+        client_max_body_size 55M;
     }
 }
 NGINX
