@@ -1,5 +1,5 @@
 ################################################################################
-# DocuRural — Módulo SSM Parameter Store
+# DocuRural -Módulo SSM Parameter Store
 # 5 parámetros bajo /docurural/<env>/* (spec §7.1)
 # SecureString para secretos; String para valores no sensibles.
 #
@@ -11,7 +11,7 @@
 
 resource "aws_ssm_parameter" "db_password" {
   name        = "/docurural/${var.env}/db-password"
-  description = "Contraseña del usuario docurural_user en PostgreSQL — entorno ${var.env}"
+  description = "Contraseña del usuario docurural_user en PostgreSQL -entorno ${var.env}"
   type        = "SecureString"
   value       = var.db_password
 
@@ -24,7 +24,7 @@ resource "aws_ssm_parameter" "db_password" {
 
 resource "aws_ssm_parameter" "jwt_secret" {
   name        = "/docurural/${var.env}/jwt-secret"
-  description = "Clave secreta JWT — entorno ${var.env}"
+  description = "Clave secreta JWT -entorno ${var.env}"
   type        = "SecureString"
   value       = var.jwt_secret
 
@@ -37,7 +37,7 @@ resource "aws_ssm_parameter" "jwt_secret" {
 
 resource "aws_ssm_parameter" "s3_bucket_docs" {
   name        = "/docurural/${var.env}/s3-bucket-docs"
-  description = "Nombre del bucket S3 de documentos — entorno ${var.env}"
+  description = "Nombre del bucket S3 de documentos -entorno ${var.env}"
   type        = "String"
   value       = var.bucket_docs_name
 
@@ -50,7 +50,7 @@ resource "aws_ssm_parameter" "s3_bucket_docs" {
 
 resource "aws_ssm_parameter" "s3_bucket_backups" {
   name        = "/docurural/${var.env}/s3-bucket-backups"
-  description = "Nombre del bucket S3 de backups — entorno ${var.env}"
+  description = "Nombre del bucket S3 de backups -entorno ${var.env}"
   type        = "String"
   value       = var.bucket_backups_name
 
@@ -63,7 +63,7 @@ resource "aws_ssm_parameter" "s3_bucket_backups" {
 
 resource "aws_ssm_parameter" "aws_region" {
   name        = "/docurural/${var.env}/aws-region"
-  description = "Región AWS — entorno ${var.env}"
+  description = "Región AWS -entorno ${var.env}"
   type        = "String"
   value       = var.aws_region
 

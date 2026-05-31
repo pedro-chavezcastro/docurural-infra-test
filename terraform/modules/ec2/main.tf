@@ -84,7 +84,7 @@ resource "aws_key_pair" "this" {
 
 resource "aws_security_group" "this" {
   name        = "docurural-${var.env}-sg"
-  description = "DocuRural — entorno ${var.env}"
+  description = "DocuRural - entorno ${var.env}"
 
   # HTTP — redirect a HTTPS (Certbot lo gestiona)
   ingress {
@@ -118,7 +118,7 @@ resource "aws_security_group" "this" {
   dynamic "ingress" {
     for_each = length(var.qa_ips) > 0 ? [1] : []
     content {
-      description = "PostgreSQL QA — acceso remoto PgAdmin"
+      description = "PostgreSQL QA - acceso remoto PgAdmin"
       from_port   = 5432
       to_port     = 5432
       protocol    = "tcp"
