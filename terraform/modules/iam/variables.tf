@@ -4,7 +4,7 @@
 ################################################################################
 
 variable "env" {
-  description = "Entorno: 'test' (QA) o 'prod'"
+  description = "Entorno: 'qa' o 'prod'"
   type        = string
 }
 
@@ -29,6 +29,6 @@ variable "bucket_scripts_arn" {
 }
 
 variable "log_group_name" {
-  description = "Nombre del log group de CloudWatch (ej: /docurural-test/app). Se usa para construir el ARN de permiso."
+  description = "Nombre del log group de CloudWatch (ej: /docurural-qa/app). Se usa para construir el ARN de permiso."
   type        = string
 }

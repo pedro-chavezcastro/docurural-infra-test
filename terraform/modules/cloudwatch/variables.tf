@@ -4,12 +4,12 @@
 ################################################################################
 
 variable "env" {
-  description = "Entorno: 'test' (QA) o 'prod'"
+  description = "Entorno: 'qa' o 'prod'"
   type        = string
 }
 
 variable "log_group_name" {
-  description = "Nombre del log group de CloudWatch (ej: /docurural-test/app o /docurural/app)"
+  description = "Nombre del log group de CloudWatch (ej: /docurural-qa/app o /docurural/app)"
   type        = string
 }
 

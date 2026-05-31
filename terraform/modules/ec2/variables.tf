@@ -4,7 +4,7 @@
 ################################################################################
 
 variable "env" {
-  description = "Entorno: 'test' (QA) o 'prod'"
+  description = "Entorno: 'qa' o 'prod'"
   type        = string
 }
 
@@ -119,12 +119,12 @@ variable "github_repo_frontend" {
 # ── Configuración por entorno ─────────────────────────────────────────────────
 
 variable "cloudwatch_log_group" {
-  description = "Nombre del log group de CloudWatch (ej: /docurural-test/app)"
+  description = "Nombre del log group de CloudWatch (ej: /docurural-qa/app)"
   type        = string
 }
 
 variable "spring_profile" {
-  description = "Perfil de Spring Boot activo: 'test' (QA) o 'prod'"
+  description = "Perfil de Spring Boot activo: 'qa' o 'prod'"
   type        = string
 }
 

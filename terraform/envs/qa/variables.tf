@@ -21,7 +21,7 @@ variable "instance_type" {
 variable "ssh_public_key_path" {
   description = "Ruta al archivo .pub de la clave SSH de QA"
   type        = string
-  default     = "~/.ssh/docurural-test-key.pub"
+  default     = "~/.ssh/docurural-qa-key.pub"
 }
 
 variable "admin_ip" {
@@ -69,7 +69,7 @@ variable "db_password" {
 variable "admin_seed_email" {
   description = "Email del usuario administrador inicial"
   type        = string
-  default     = "admin@test.docurural.co"
+  default     = "admin@qa.docurural.co"
 }
 
 variable "admin_seed_password" {
@@ -102,19 +102,19 @@ variable "github_repo_frontend" {
 variable "bucket_docs_name" {
   description = "Nombre del bucket S3 de documentos para QA"
   type        = string
-  default     = "docurural-test-documentos"
+  default     = "docurural-qa-documentos"
 }
 
 variable "bucket_backups_name" {
   description = "Nombre del bucket S3 de backups para QA"
   type        = string
-  default     = "docurural-test-backups"
+  default     = "docurural-qa-backups"
 }
 
 variable "cloudwatch_log_group" {
   description = "Nombre del log group de CloudWatch para QA"
   type        = string
-  default     = "/docurural-test/app"
+  default     = "/docurural-qa/app"
 }
 
 variable "budget_limit" {

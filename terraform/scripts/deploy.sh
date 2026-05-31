@@ -33,7 +33,7 @@ fi
 # ── Configuración por entorno ─────────────────────────────────────────────────
 
 if [ "$ENV" = "qa" ]; then
-  KEY_PATH="${ENV_KEY_PATH:-$HOME/.ssh/docurural-test-key.pem}"
+  KEY_PATH="${ENV_KEY_PATH:-$HOME/.ssh/docurural-qa-key.pem}"
   SSH_USER="ubuntu"
   # Obtener la IP desde los outputs de Terraform
   HOST="${ENV_HOST:-$(cd "$(dirname "$0")/../envs/qa" && terraform output -raw elastic_ip 2>/dev/null || echo '')}"

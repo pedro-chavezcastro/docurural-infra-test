@@ -67,7 +67,7 @@ data "aws_route53_zone" "main" {
 module "s3" {
   source = "../../modules/s3"
 
-  env                 = "test"
+  env                 = "qa"
   bucket_docs_name    = var.bucket_docs_name
   bucket_backups_name = var.bucket_backups_name
   enable_versioning   = false # Solo PROD activa versioning (spec §6.1)
@@ -77,7 +77,7 @@ module "s3" {
 module "iam" {
   source = "../../modules/iam"
 
-  env                = "test"
+  env                = "qa"
   aws_region         = var.aws_region
   bucket_docs_arn    = module.s3.docs_bucket_arn
   bucket_backups_arn = module.s3.backups_bucket_arn
@@ -85,11 +85,11 @@ module "iam" {
   log_group_name     = var.cloudwatch_log_group
 }
 
-# 3. SSM Parameter Store — 5 parámetros /docurural/test/*
+# 3. SSM Parameter Store — 5 parámetros /docurural/qa/*
 module "ssm" {
   source = "../../modules/ssm"
 
-  env                 = "test"
+  env                 = "qa"
   aws_region          = var.aws_region
   db_password         = var.db_password
   jwt_secret          = var.jwt_secret
@@ -101,7 +101,7 @@ module "ssm" {
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
-  env            = "test"
+  env            = "qa"
   log_group_name = var.cloudwatch_log_group
   budget_limit   = var.budget_limit
   alert_email    = var.alert_email
@@ -111,11 +111,11 @@ module "cloudwatch" {
 module "ec2" {
   source = "../../modules/ec2"
 
-  env                    = "test"
+  env                    = "qa"
   aws_region             = var.aws_region
   instance_type          = var.instance_type
   ebs_size               = 20 # QA: 20 GB (spec §2.1)
-  key_name               = "docurural-test-key"
+  key_name               = "docurural-qa-key"
   ssh_public_key_path    = var.ssh_public_key_path
   admin_ip               = var.admin_ip
   qa_ips                 = var.qa_ips # Puerto 5432 abierto solo en QA
@@ -132,7 +132,7 @@ module "ec2" {
   github_repo            = var.github_repo
   github_repo_frontend   = var.github_repo_frontend
   cloudwatch_log_group   = var.cloudwatch_log_group
-  spring_profile         = "test"          # QA usa perfil test
+  spring_profile         = "qa"            # QA usa perfil qa
   jwt_expiration_ms      = 1800000         # 30 min (spec §1.2)
   bucket_docs_name       = module.s3.docs_bucket_name
   bucket_backups_name    = module.s3.backups_bucket_name
@@ -147,7 +147,7 @@ module "ec2" {
 module "route53" {
   source = "../../modules/route53"
 
-  env         = "test"
+  env         = "qa"
   zone_id     = data.aws_route53_zone.main.zone_id
   domain_name = var.domain_name
   elastic_ip  = module.ec2.elastic_ip

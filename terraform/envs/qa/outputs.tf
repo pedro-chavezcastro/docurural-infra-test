@@ -14,7 +14,7 @@ output "url_aplicacion" {
 
 output "ssh_command" {
   description = "Comando SSH para conectarse a la instancia QA"
-  value       = "ssh -i ~/.ssh/docurural-test-key.pem ubuntu@${module.ec2.elastic_ip}"
+  value       = "ssh -i ~/.ssh/docurural-qa-key.pem ubuntu@${module.ec2.elastic_ip}"
 }
 
 output "pgadmin_host" {
