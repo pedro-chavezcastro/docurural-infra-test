@@ -4,9 +4,9 @@
 # user_data.sh.tftpl — renderizada por Terraform con templatefile()
 #
 # Sintaxis:
-#   $${VAR}   → variable bash (el $$ se convierte en $ al renderizar)
-#   ${VAR}    → variable Terraform sustituida por templatefile()
-#   %{ if }   → condicional Terraform en el template
+#   $${VAR}    → variable bash (doble $ en fuente; se renderiza como $VAR)
+#   $${VAR}    → variable Terraform: usar el nombre sin llaves en templatefile()
+#   %%{ if }   → condicional Terraform en el template (doble % en fuente)
 #
 # Variables de Terraform sustituidas:
 #   db_password, admin_seed_email, admin_seed_password
