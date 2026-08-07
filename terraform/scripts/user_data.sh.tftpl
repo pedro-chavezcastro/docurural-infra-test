@@ -32,7 +32,7 @@ echo "======================================================================"
 # ------------------------------------------------------------------------------
 # 1. Actualizar el sistema
 # ------------------------------------------------------------------------------
-echo "[1/13] Actualizando el sistema..."
+echo "[1/12] Actualizando el sistema..."
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y curl wget unzip jq dnsutils
@@ -40,7 +40,7 @@ apt-get install -y curl wget unzip jq dnsutils
 # ------------------------------------------------------------------------------
 # 2. Instalar Java 17, Maven y Node.js
 # ------------------------------------------------------------------------------
-echo "[2/13] Instalando Java 17, Maven y Node.js..."
+echo "[2/12] Instalando Java 17, Maven y Node.js..."
 apt-get install -y openjdk-17-jdk maven
 java -version
 mvn -version
@@ -54,7 +54,7 @@ npm -v
 # ------------------------------------------------------------------------------
 # 3. Instalar y configurar PostgreSQL
 # ------------------------------------------------------------------------------
-echo "[3/13] Instalando PostgreSQL..."
+echo "[3/12] Instalando PostgreSQL..."
 apt-get install -y postgresql postgresql-contrib
 systemctl enable postgresql
 systemctl start postgresql
@@ -93,7 +93,7 @@ ss -tlnp | grep 5432 || true
 # ------------------------------------------------------------------------------
 # 4. Instalar Nginx
 # ------------------------------------------------------------------------------
-echo "[4/13] Instalando Nginx..."
+echo "[4/12] Instalando Nginx..."
 apt-get install -y nginx
 systemctl enable nginx
 systemctl start nginx
@@ -101,17 +101,44 @@ systemctl start nginx
 # ------------------------------------------------------------------------------
 # 5. Crear estructura de directorios
 # ------------------------------------------------------------------------------
-echo "[5/13] Creando estructura de directorios..."
+echo "[5/12] Creando estructura de directorios..."
 # uploads/ ya no es necesario — los documentos van a S3
 mkdir -p /opt/docurural/{backend,frontend,logs,backups}
 chown -R ubuntu:ubuntu /opt/docurural
+
+# Placeholder de infraestructura para Nginx: nada de esto es un deploy de la
+# app — solo da un root valido para que "nginx -t" y el reto HTTP-01 de
+# Certbot funcionen antes de que el runner de CI/CD despliegue el build real.
+mkdir -p /opt/docurural/frontend/dist/browser
+cat > /opt/docurural/frontend/dist/browser/index.html <<'HTML'
+<!doctype html><meta charset="utf-8">
+<title>DocuRural — infraestructura lista</title>
+<p>Infraestructura aprovisionada. Sin aplicacion desplegada.</p>
+HTML
+chown -R ubuntu:ubuntu /opt/docurural/frontend
+
+# ------------------------------------------------------------------------------
+# 5b. Swap de 2 GB — mitiga OOM en instancias pequeñas (ej. t3.micro) donde
+# PostgreSQL + los runners self-hosted (Maven/npm build) compiten por RAM.
+# ------------------------------------------------------------------------------
+echo "[5b/12] Configurando swap de 2 GB..."
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo "Swap habilitado."
+else
+  echo "Swap ya existente, se omite."
+fi
 
 # ------------------------------------------------------------------------------
 # 6. Crear archivo .env (spec §8.4)
 # Los secretos sensibles (DB_PASSWORD, JWT_SECRET) NO van aquí —
 # Spring Boot los lee automáticamente desde SSM Parameter Store al arrancar.
 # ------------------------------------------------------------------------------
-echo "[6/13] Creando archivo .env..."
+echo "[6/12] Creando archivo .env..."
 cat > /opt/docurural/backend/.env <<ENV
 # ── Base de datos ──────────────────────────────────────────────────────────────
 DB_HOST=localhost
@@ -147,7 +174,7 @@ chown ubuntu:ubuntu /opt/docurural/backend/.env
 # ------------------------------------------------------------------------------
 # 7. Crear servicio systemd (spec §9.1)
 # ------------------------------------------------------------------------------
-echo "[7/13] Creando servicio systemd..."
+echo "[7/12] Creando servicio systemd..."
 cat > /etc/systemd/system/docurural.service <<SERVICE
 [Unit]
 Description=DocuRural API - Spring Boot (${spring_profile})
@@ -170,13 +197,13 @@ WantedBy=multi-user.target
 SERVICE
 
 systemctl daemon-reload
-# El servicio se habilita al desplegar el JAR (paso 12)
+# El servicio permanece deshabilitado hasta que el runner de CI/CD despliegue el JAR
 
 # ------------------------------------------------------------------------------
 # 8. Configurar Nginx — bloque HTTP inicial (spec §10.1)
 # Certbot completará el bloque HTTPS y el redirect 80→443 en el paso 9.
 # ------------------------------------------------------------------------------
-echo "[8/13] Configurando Nginx (HTTP inicial)..."
+echo "[8/12] Configurando Nginx (HTTP inicial)..."
 cat > /etc/nginx/sites-available/docurural <<NGINX
 server {
     listen 80;
@@ -217,7 +244,7 @@ systemctl reload nginx
 # Este paso espera hasta 5 minutos a que el DNS propague.
 # Si falla, el script continúa y deja Certbot para corrida manual posterior.
 # ------------------------------------------------------------------------------
-echo "[9/13] Configurando HTTPS con Certbot..."
+echo "[9/12] Configurando HTTPS con Certbot..."
 apt-get install -y certbot python3-certbot-nginx
 
 echo "Esperando propagación DNS para ${domain_name}..."
@@ -255,7 +282,7 @@ systemctl status certbot.timer --no-pager || true
 # ------------------------------------------------------------------------------
 # 10. CloudWatch Agent — enviar logs de la aplicación a CloudWatch (spec §13.1)
 # ------------------------------------------------------------------------------
-echo "[10/13] Configurando CloudWatch Agent..."
+echo "[10/12] Configurando CloudWatch Agent..."
 wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb \
   -O /tmp/amazon-cloudwatch-agent.deb
 dpkg -i /tmp/amazon-cloudwatch-agent.deb
@@ -293,7 +320,7 @@ echo "CloudWatch Agent iniciado. Log group: ${cloudwatch_log_group}"
 # 11. Script de backup + cron (spec §14.2)
 # pg_dump diario a las 2 AM → bucket S3 de backups (retención 90 días por lifecycle)
 # ------------------------------------------------------------------------------
-echo "[11/13] Configurando backup diario de PostgreSQL..."
+echo "[11/12] Configurando backup diario de PostgreSQL..."
 cat > /opt/docurural/backup.sh <<'BACKUP'
 #!/bin/bash
 # backup.sh — DocuRural
@@ -334,7 +361,7 @@ echo "Cron de backup configurado: 0 2 * * *"
 # 12. Instalar y registrar runners self-hosted de GitHub Actions
 # backend + frontend en el mismo EC2 (spec §9 del user_data original)
 # ------------------------------------------------------------------------------
-echo "[12/13] Instalando runners de GitHub Actions..."
+echo "[12/12] Instalando runners de GitHub Actions..."
 
 apt-get install -y libicu-dev
 
@@ -440,105 +467,10 @@ SUDOERS
 chmod 440 /etc/sudoers.d/github-runner
 
 # ------------------------------------------------------------------------------
-# 13. Despliegue inicial — JAR y frontend (si ya existen en GitHub)
-# ------------------------------------------------------------------------------
-echo "[13/13] Intentando despliegue inicial desde GitHub..."
-
-# ── Backend: descargar JAR desde GitHub Packages ──────────────────────────────
-GITHUB_OWNER=$(echo "${github_repo}" | cut -d'/' -f1)
-
-cat > /tmp/settings-download.xml <<SETTINGS
-<settings>
-  <servers>
-    <server>
-      <id>github</id>
-      <username>x-access-token</username>
-      <password>${github_pat}</password>
-    </server>
-  </servers>
-</settings>
-SETTINGS
-
-PACKAGE_EXISTS=$(curl -fsSL \
-  -H "Authorization: token ${github_pat}" \
-  -H "Accept: application/vnd.github.v3+json" \
-  "https://api.github.com/users/$${GITHUB_OWNER}/packages/maven/co.edu.docurural.docurural-backend/versions" \
-  2>/dev/null | jq 'length' 2>/dev/null || echo "0")
-
-if [ "$${PACKAGE_EXISTS:-0}" = "0" ]; then
-  echo "AVISO: No se encontró JAR en GitHub Packages. Se iniciará tras el primer push a 'develop'."
-else
-  echo "JAR encontrado ($${PACKAGE_EXISTS} versión/es). Descargando via Maven..."
-
-  sudo -u ubuntu mvn dependency:get \
-    -Dartifact=co.edu.docurural:docurural-backend:0.0.1-SNAPSHOT:jar \
-    -DremoteRepositories="github::default::https://maven.pkg.github.com/${github_repo}" \
-    -Dmaven.repo.local=/tmp/docurural-download \
-    --batch-mode --no-transfer-progress \
-    -s /tmp/settings-download.xml
-
-  JAR_ORIGEN=$(find /tmp/docurural-download -name "docurural-backend-*.jar" 2>/dev/null | head -1)
-
-  if [ -n "$${JAR_ORIGEN}" ]; then
-    cp "$${JAR_ORIGEN}" /opt/docurural/backend/docurural-api.jar
-    chown github-runner:github-runner /opt/docurural/backend/docurural-api.jar
-    echo "JAR copiado: $${JAR_ORIGEN}"
-
-    systemctl enable docurural
-    systemctl start docurural
-    sleep 20
-
-    if systemctl is-active --quiet docurural; then
-      echo "Servicio docurural iniciado correctamente."
-    else
-      echo "AVISO: El servicio no quedó activo. Revisar: tail -f /opt/docurural/logs/app.log"
-    fi
-  else
-    echo "AVISO: Maven no encontró el JAR. Verificar credenciales y nombre del artefacto."
-  fi
-fi
-
-rm -f /tmp/settings-download.xml
-rm -rf /tmp/docurural-download
-
-# ── Frontend: clonar y compilar desde GitHub ──────────────────────────────────
-FRONTEND_SHA=$(curl -fsSL \
-  -H "Authorization: token ${github_pat}" \
-  -H "Accept: application/vnd.github.v3+json" \
-  "https://api.github.com/repos/${github_repo_frontend}/commits/develop" \
-  2>/dev/null | jq -r '.sha // empty' 2>/dev/null || true)
-
-if [ -z "$${FRONTEND_SHA}" ]; then
-  echo "AVISO: No se encontró código en la rama develop del frontend. Se desplegará con el primer push."
-else
-  echo "Frontend encontrado (commit: $${FRONTEND_SHA}). Compilando..."
-
-  sudo -u github-runner git clone \
-    --branch develop \
-    --depth 1 \
-    "https://x-access-token:${github_pat}@github.com/${github_repo_frontend}.git" \
-    /tmp/docurural-frontend-build
-
-  cd /tmp/docurural-frontend-build
-  sudo -u github-runner npm ci
-  sudo -u github-runner npm run build -- --configuration production
-
-  if [ -d "/tmp/docurural-frontend-build/dist/docurural-frontend/browser" ]; then
-    rm -rf /opt/docurural/frontend/dist
-    mkdir -p /opt/docurural/frontend/dist/browser
-    cp -r /tmp/docurural-frontend-build/dist/docurural-frontend/browser/. /opt/docurural/frontend/dist/browser/
-    chown -R github-runner:github-runner /opt/docurural/frontend/dist
-    echo "Frontend desplegado correctamente."
-    nginx -s reload
-  else
-    echo "AVISO: El build no generó la carpeta dist/browser esperada. Verificar angular.json."
-  fi
-
-  rm -rf /tmp/docurural-frontend-build
-fi
-
-# ------------------------------------------------------------------------------
 # Finalización
+# Esta plantilla solo aprovisiona infraestructura. NO descarga el JAR del
+# backend ni compila el frontend — eso queda a cargo de los runners de CI/CD
+# registrados en el paso 12, disparados por los workflows de cada repo.
 # ------------------------------------------------------------------------------
 echo "======================================================================"
 echo "DocuRural — Configuración completada: $(date)"
@@ -554,8 +486,12 @@ echo ""
 echo "SERVICIOS:"
 echo "  PostgreSQL: $(systemctl is-active postgresql)"
 echo "  Nginx:      $(systemctl is-active nginx)"
-echo "  DocuRural:  $(systemctl is-active docurural 2>/dev/null || echo 'pendiente de deploy')"
+echo "  DocuRural:  $(systemctl is-active docurural 2>/dev/null || echo 'pendiente de deploy por el runner de CI/CD')"
 echo "  CW Agent:   $(systemctl is-active amazon-cloudwatch-agent 2>/dev/null || echo 'verificar')"
+echo ""
+echo "API (Postman):"
+echo "  Base URL: https://${domain_name}/api"
+echo "  Nota: hasta que el runner despliegue el JAR, responde 502 (Nginx activo, app pendiente)."
 echo ""
 echo "RUNNERS DE CI/CD:"
 echo "  Backend:  ${runner_name_backend} — https://github.com/${github_repo}/settings/actions/runners"

@@ -4,7 +4,7 @@
 ################################################################################
 
 variable "env" {
-  description = "Entorno: 'qa' o 'prod'"
+  description = "Entorno: 'develop', 'qa' o 'prod'"
   type        = string
 }
 
@@ -19,8 +19,8 @@ variable "instance_type" {
   default     = "t3.small"
 
   validation {
-    condition     = contains(["t3.small", "t3.medium"], var.instance_type)
-    error_message = "Usar t3.small (recomendado) o t3.medium. No usar t3.micro: se queda sin memoria con Spring Boot + PostgreSQL."
+    condition     = contains(["t3.micro", "t3.small", "t3.medium"], var.instance_type)
+    error_message = "Usar t3.small (recomendado) o t3.medium. t3.micro es válido solo para entornos livianos (ej. develop): con Spring Boot + PostgreSQL + runners de CI/CD compilando, hay riesgo de OOM incluso con swap configurado."
   }
 }
 
@@ -124,7 +124,7 @@ variable "cloudwatch_log_group" {
 }
 
 variable "spring_profile" {
-  description = "Perfil de Spring Boot activo: 'qa' o 'prod'"
+  description = "Perfil de Spring Boot activo: 'develop', 'qa' o 'prod'. Debe coincidir con var.env (backup.sh lee /docurural/<spring_profile>/db-password)."
   type        = string
 }
 

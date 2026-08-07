@@ -132,11 +132,11 @@ module "ec2" {
   github_repo            = var.github_repo
   github_repo_frontend   = var.github_repo_frontend
   cloudwatch_log_group   = var.cloudwatch_log_group
-  spring_profile         = "qa"            # QA usa perfil qa
-  jwt_expiration_ms      = 1800000         # 30 min (spec §1.2)
+  spring_profile         = "qa"    # QA usa perfil qa
+  jwt_expiration_ms      = 1800000 # 30 min (spec §1.2)
   bucket_docs_name       = module.s3.docs_bucket_name
   bucket_backups_name    = module.s3.backups_bucket_name
-  pg_remote_access       = true            # QA expone 5432 para PgAdmin (spec §3.1)
+  pg_remote_access       = true # QA expone 5432 para PgAdmin (spec §3.1)
   runner_name_backend    = "docurural-qa-runner"
   runner_name_frontend   = "docurural-qa-runner-frontend"
   runner_labels_backend  = "qa,docurural-backend"

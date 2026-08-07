@@ -12,6 +12,11 @@ output "url_aplicacion" {
   value       = "https://${var.domain_name}"
 }
 
+output "api_base_url" {
+  description = "Base URL de la API para Postman (responde 502 hasta que el runner de CI/CD despliegue el JAR)"
+  value       = "https://${var.domain_name}/api"
+}
+
 output "ssh_command" {
   description = "Comando SSH para conectarse a la instancia QA"
   value       = "ssh -i ~/.ssh/docurural-qa-key.pem ubuntu@${module.ec2.elastic_ip}"

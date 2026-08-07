@@ -4,7 +4,7 @@
 ################################################################################
 
 variable "env" {
-  description = "Entorno: 'qa' o 'prod'"
+  description = "Entorno: 'develop', 'qa' o 'prod'"
   type        = string
 }
 
