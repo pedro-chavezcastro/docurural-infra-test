@@ -158,7 +158,7 @@ AWS_S3_BUCKET_DOCS=${bucket_docs_name}
 AWS_S3_BUCKET_BACKUPS=${bucket_backups_name}
 
 # ── CORS — solo el dominio del entorno ────────────────────────────────────────
-CORS_ORIGINS=https://${domain_name}
+CORS_ALLOWED_ORIGINS=https://${domain_name}
 
 # ── Admin seed (primer arranque via Flyway) ───────────────────────────────────
 ADMIN_SEED_EMAIL=${admin_seed_email}
