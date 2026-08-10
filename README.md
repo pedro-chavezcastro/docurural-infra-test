@@ -12,6 +12,7 @@ Infraestructura como código (Terraform) para los entornos de DocuRural en AWS: 
 - [Requisitos previos](#requisitos-previos)
 - [Cómo desplegar](#cómo-desplegar)
 - [Qué hacer después del apply](#qué-hacer-después-del-apply)
+- [Infraestructura compartida de CI/CD](#infraestructura-compartida-de-cicd)
 - [Referencia de módulos](#referencia-de-módulos)
 - [Convención de nombres](#convención-de-nombres)
 - [Qué hace el user_data al arrancar](#qué-hace-el-user_data-al-arrancar)
@@ -75,6 +76,9 @@ flowchart TB
     RunnerF -.->|"build → dist/browser"| Nginx
 ```
 
+> Este diagrama describe un único entorno de aplicación (develop/qa/prod). No incluye el Lambda relay de
+> `envs/shared` — ver [Infraestructura compartida de CI/CD](#infraestructura-compartida-de-cicd).
+
 ### Puertos expuestos
 
 | Puerto | Origen permitido | Uso |
@@ -92,7 +96,9 @@ terraform/
 ├── envs/                     # Un root module independiente por entorno (state propio)
 │   ├── develop/
 │   ├── qa/
-│   └── prod/
+│   ├── prod/
+│   │   └── main.tf, variables.tf, outputs.tf, terraform.tfvars.example
+│   └── shared/                # Infra de CI/CD compartida por la organización (no es un entorno de app)
 │       └── main.tf, variables.tf, outputs.tf, terraform.tfvars.example
 ├── modules/                  # Módulos reutilizables entre entornos
 │   ├── s3/            documentos + backups + scripts
@@ -101,12 +107,13 @@ terraform/
 │   ├── cloudwatch/      log group + billing budget
 │   ├── ec2/             security group + key pair + instancia + EIP
 │   ├── route53/         registro A
-│   └── eventbridge/     apagado/encendido automático (solo prod)
+│   ├── eventbridge/     apagado/encendido automático (solo prod)
+│   └── github-webhook-relay/  Lambda relay del webhook de Projects v2 (usado por envs/shared)
 └── scripts/
     └── user_data.sh.tftpl    # Plantilla de arranque, renderizada por el módulo ec2
 ```
 
-Cada entorno bajo `envs/` es un root module completo: tiene su propio `terraform init` y su propio `.tfstate` local. No comparten estado entre sí.
+Cada entorno bajo `envs/` es un root module completo: tiene su propio `terraform init` y su propio `.tfstate` local. No comparten estado entre sí. `envs/shared` sigue el mismo patrón pero no es un entorno de la aplicación — ver [Infraestructura compartida de CI/CD](#infraestructura-compartida-de-cicd).
 
 ## Los tres entornos
 
@@ -180,6 +187,65 @@ El log debe llegar a `[12/12]` y mostrar el banner final. A partir de ahí:
 - La API queda publicada en el output `api_base_url` (`terraform output api_base_url`, equivalente a `https://<dominio>/api`) y **responderá `502`** hasta que un runner despliegue el JAR. Un `502` con cabecera `Server: nginx` confirma que la infraestructura (SG, DNS, TLS, proxy) funciona correctamente.
 - Los dos runners deben aparecer como **Idle** en `Settings → Actions → Runners` de cada repositorio de aplicación (`docurural-backend`, `docurural-frontend`). A partir de ahí, cualquier workflow con el label correspondiente (ver tabla de entornos) desplegará la app.
 
+## Infraestructura compartida de CI/CD
+
+Además de los tres entornos de aplicación, `terraform/envs/shared/` provisiona un **Lambda relay** entre el
+webhook de organización de GitHub (`projects_v2_item`) y `docurural-backend`. No es infraestructura de un
+entorno de app (no aparece en el diagrama de arquitectura de más arriba) — es global a la organización:
+existe una sola vez, independientemente de cuántos entornos develop/qa/prod haya desplegados, y su ciclo de
+vida no depende del de ninguno de ellos.
+
+**Qué hace**: recibe el POST del webhook, verifica la firma `X-Hub-Signature-256`, filtra solo eventos
+`projects_v2_item` / `edited` sobre un `Issue` cuyo campo editado sea `Status`, y si pasa el filtro dispara un
+`repository_dispatch` (`event_type: project-status-changed`) en `docurural-backend` con el `content_node_id`
+del issue editado como `client_payload`.
+
+```
+Webhook org GitHub → Lambda (Function URL) → repository_dispatch → project-cascade.yml → update_project_status.py (modo cascade)
+```
+
+Toda la lógica de negocio (confirmar que el issue es el padre de la release y propagar el estado a sus
+sub-issues) vive en `.github/scripts/update_project_status.py` de `docurural-backend`, disparado por
+`.github/workflows/project-cascade.yml`. Este Lambda no sabe nada de releases ni de sub-issues.
+
+### Desplegar
+
+```bash
+cd terraform/envs/shared
+cp terraform.tfvars.example terraform.tfvars
+# completar github_webhook_secret (openssl rand -hex 32) y github_dispatch_token (PAT classic, scope repo)
+
+terraform init
+terraform plan  -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+```
+
+Un cambio en `terraform/modules/github-webhook-relay/src/index.mjs` se redespliega solo en el siguiente
+`apply` (el `source_code_hash` del Lambda cambia) — a diferencia del Lambda descrito originalmente en el
+spec, aquí no hace falta re-zipear ni subir nada a mano.
+
+### Registrar el webhook en la organización
+
+Esto **no lo hace Terraform** — la API de GitHub para gestionar webhooks de organización no tiene un
+provider maduro en este repo, y es una operación de una sola vez. Requiere ser owner de `CCPL-Solutions`:
+
+1. `terraform output webhook_relay_url` → copiar el valor.
+2. `https://github.com/organizations/CCPL-Solutions/settings/hooks` → **Add webhook**.
+3. **Payload URL**: la Function URL del paso 1. **Content type**: `application/json`. **Secret**: el mismo
+   `github_webhook_secret` usado en el `apply`.
+4. **Which events**: *Let me select individual events* → marcar únicamente **Projects v2 item**.
+5. Guardar. GitHub manda un evento `ping` inmediatamente — debe verse un `204` en *Recent Deliveries*.
+
+### Verificar
+
+- *Recent Deliveries* del webhook debe mostrar `204` en cada entrega tras mover una tarjeta.
+- `terraform output webhook_relay_log_command` da el comando para seguir los logs en vivo
+  (`aws logs tail /aws/lambda/docurural-github-webhook-relay --follow`).
+- Mover la tarjeta del issue padre en el tablero → debe aparecer un run de `project-cascade.yml` en Actions
+  unos segundos después. Mover la tarjeta de un issue que **no** es el padre → no debe disparar nada visible
+  en Actions (el relay reenvía igual; `update_project_status.py` en modo `cascade` lo descarta
+  silenciosamente al comparar `content_node_id` contra el issue padre configurado).
+
 ## Referencia de módulos
 
 | Módulo | Crea | Outputs principales |
@@ -191,6 +257,7 @@ El log debe llegar a `[12/12]` y mostrar el banner final. A partir de ahí:
 | `ec2` | Objeto S3 con el `user_data` renderizado, key pair, security group, instancia EC2, Elastic IP + asociación | `instance_id`, `instance_arn`, `elastic_ip`, `security_group_id` |
 | `route53` | Registro A (TTL 300) apuntando la Elastic IP | `fqdn` |
 | `eventbridge` | Role de Scheduler + 2 `aws_scheduler_schedule` (apagado 22:00 / encendido 06:00, L–V) — **solo instanciado en prod** | `apagado_schedule_arn`, `encendido_schedule_arn` |
+| `github-webhook-relay` | Lambda (Node 20.x) + Function URL (`auth NONE`) + permission + role de ejecución + log group — instanciado en `envs/shared`, no en develop/qa/prod | `function_url`, `function_name`, `function_arn`, `log_group_name` |
 
 Dos detalles del módulo `ec2` que conviene tener presentes:
 
@@ -224,10 +291,10 @@ No derivan de `env` y deben pasarse explícitos en cada `terraform.tfvars`: nomb
 
 ## Pendientes y deuda técnica conocida
 
-- **Rotar el PAT de GitHub.** Está en texto plano en `terraform/envs/qa/terraform.tfvars` y en el `terraform.tfvars` legacy de la raíz; además queda embebido en el `user_data.sh` renderizado dentro del bucket S3 de scripts y en los `.tfstate` locales. Usar un token distinto por entorno.
-- **Habilitar el backend remoto de Terraform.** Hoy el bloque `backend "s3"` está comentado en los tres `envs/*/main.tf`; el estado vive local. Para habilitarlo:
+- **Rotar el PAT de GitHub.** Está en texto plano en `terraform/envs/qa/terraform.tfvars` y en el `terraform.tfvars` legacy de la raíz; además queda embebido en el `user_data.sh` renderizado dentro del bucket S3 de scripts y en los `.tfstate` locales. Usar un token distinto por entorno. El mismo problema aplica a `github_dispatch_token` en `terraform/envs/shared/terraform.tfvars` y en su `.tfstate` local — el Lambda lo recibe como variable de entorno en texto plano (visible en la consola de AWS), igual que el resto de secretos de este repo.
+- **Habilitar el backend remoto de Terraform.** Hoy el bloque `backend "s3"` está comentado en los cuatro `envs/*/main.tf` (incluido `shared`); el estado vive local. Para habilitarlo:
   1. Crear manualmente el bucket `docurural-terraform-state` (con versioning y encriptación) y una tabla DynamoDB `docurural-terraform-locks` (clave de partición `LockID`).
-  2. Descomentar el bloque `backend "s3"` en `envs/<env>/main.tf`, ajustando `key` por entorno (`docurural/<env>/terraform.tfstate`).
+  2. Descomentar el bloque `backend "s3"` en `envs/<env>/main.tf`, ajustando `key` por entorno (`docurural/<env>/terraform.tfstate`, `docurural/shared/terraform.tfstate`).
   3. Ejecutar `terraform init -migrate-state` en cada entorno.
 - **Nombres legacy en QA.** `terraform/envs/qa/terraform.tfvars` todavía usa `docurural-test-*` (buckets, log group) pese al rename de entorno de `"test"` a `"qa"`; cambiarlos implica recrear recursos con estado vivo.
 - **Archivos legacy en la raíz.** `terraform.tfvars`, `terraform.tfstate`, `terraform.tfstate.backup` y `.terraform.lock.hcl` en la raíz del repo son sobrantes de la estructura monolítica anterior a la modularización; ningún `.tf` los referencia ya.

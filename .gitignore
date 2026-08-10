@@ -31,3 +31,6 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Artefactos de build generados por data.archive_file (módulo github-webhook-relay)
+terraform/modules/*/build/

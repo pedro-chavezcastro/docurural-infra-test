@@ -1,0 +1,25 @@
+################################################################################
+# DocuRural — Entorno SHARED
+# terraform.tfvars.example — Plantilla de valores
+#
+# INSTRUCCIONES:
+#   1. Copiar: cp terraform.tfvars.example terraform.tfvars
+#   2. Completar todos los valores reales
+#   3. NUNCA subir terraform.tfvars a Git (ya está en .gitignore)
+################################################################################
+
+# Región de AWS
+aws_region = "us-east-1"
+
+# Nombre de la función Lambda (por defecto suele ser suficiente)
+function_name = "docurural-github-webhook-relay"
+
+# Secret del webhook de organización — generar con: openssl rand -hex 32
+github_webhook_secret = "CAMBIAR_POR_UN_SECRET_ALEATORIO_DE_32_BYTES_EN_HEX"
+
+# PAT (classic) con scope 'repo', usado solo para el repository_dispatch.
+# Puede ser el mismo PROJECTS_TOKEN que ya existe como secret del repo, o uno nuevo.
+github_dispatch_token = "ghp_XXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Repositorio destino del repository_dispatch
+target_repo = "CCPL-Solutions/docurural-backend"
