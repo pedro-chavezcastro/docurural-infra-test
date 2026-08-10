@@ -257,7 +257,7 @@ provider maduro en este repo, y es una operación de una sola vez. Requiere ser 
 | `ec2` | Objeto S3 con el `user_data` renderizado, key pair, security group, instancia EC2, Elastic IP + asociación | `instance_id`, `instance_arn`, `elastic_ip`, `security_group_id` |
 | `route53` | Registro A (TTL 300) apuntando la Elastic IP | `fqdn` |
 | `eventbridge` | Role de Scheduler + 2 `aws_scheduler_schedule` (apagado 22:00 / encendido 06:00, L–V) — **solo instanciado en prod** | `apagado_schedule_arn`, `encendido_schedule_arn` |
-| `github-webhook-relay` | Lambda (Node 20.x) + Function URL (`auth NONE`) + permission + role de ejecución + log group — instanciado en `envs/shared`, no en develop/qa/prod | `function_url`, `function_name`, `function_arn`, `log_group_name` |
+| `github-webhook-relay` | Lambda (Node 20.x) + Function URL (`auth NONE`) + 2 permisos de recurso (`InvokeFunctionUrl` + `InvokeFunction`, ambos requeridos desde oct. 2025 — provider AWS >= 6.28) + role de ejecución + log group — instanciado en `envs/shared`, no en develop/qa/prod | `function_url`, `function_name`, `function_arn`, `log_group_name` |
 
 Dos detalles del módulo `ec2` que conviene tener presentes:
 

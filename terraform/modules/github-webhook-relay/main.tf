@@ -101,3 +101,17 @@ resource "aws_lambda_permission" "function_url" {
   principal              = "*"
   function_url_auth_type = "NONE"
 }
+
+# Desde octubre 2025, además de lambda:InvokeFunctionUrl, AWS exige
+# lambda:InvokeFunction en la política de recursos para que una Function URL
+# con auth NONE sea invocable — sin este segundo statement, la Function URL
+# responde 403 aunque el statement de arriba y el AuthType estén correctos.
+# InvokedViaFunctionUrl restringe este permiso a invocaciones vía la URL,
+# no vía otros métodos (consola, SDK, etc).
+resource "aws_lambda_permission" "invoke_function" {
+  statement_id             = "FunctionURLAllowPublicInvoke"
+  action                   = "lambda:InvokeFunction"
+  function_name            = aws_lambda_function.relay.function_name
+  principal                = "*"
+  invoked_via_function_url = true
+}

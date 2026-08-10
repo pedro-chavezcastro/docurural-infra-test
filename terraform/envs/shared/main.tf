@@ -18,9 +18,14 @@ terraform {
   required_version = ">= 1.6.0"
 
   required_providers {
+    # >= 6.28: primera versión que soporta invoked_via_function_url en
+    # aws_lambda_permission, necesario desde que AWS exige el statement
+    # lambda:InvokeFunction (además de InvokeFunctionUrl) en Function URLs
+    # con auth NONE (octubre 2025). Solo este root module usa v6 — develop/
+    # qa/prod siguen en ~> 5.0, cada uno con su propio init/lock.
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = ">= 6.28.0, < 7.0.0"
     }
     archive = {
       source  = "hashicorp/archive"
