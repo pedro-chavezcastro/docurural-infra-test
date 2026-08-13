@@ -1,0 +1,5 @@
+# Los scripts que se ejecutan dentro de instancias Linux (vía user_data / S3)
+# deben mantener finales de línea LF sin importar core.autocrlf en checkouts Windows.
+# CRLF aquí rompe bash en el EC2 (ej: "set -euo pipefail\r" → "invalid option").
+*.sh text eol=lf
+*.tftpl text eol=lf
