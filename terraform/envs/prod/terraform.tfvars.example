@@ -1,0 +1,65 @@
+################################################################################
+# DocuRural — Entorno PROD
+# terraform.tfvars.example — Plantilla de valores
+#
+# INSTRUCCIONES:
+#   1. Copiar: cp terraform.tfvars.example terraform.tfvars
+#   2. Completar todos los valores reales
+#   3. NUNCA subir terraform.tfvars a Git (ya está en .gitignore)
+#   4. Cambiar la contraseña del admin en el primer login
+################################################################################
+
+# Región de AWS
+aws_region = "us-east-1"
+
+# Tipo de instancia — no bajar de t3.small
+instance_type = "t3.small"
+
+# Clave SSH PROD — generar con: ssh-keygen -t ed25519 -f ~/.ssh/docurural-prod-key -C "docurural-prod"
+# ⚠  PROD usa un key pair distinto al de QA por seguridad
+ssh_public_key_path = "~/.ssh/docurural-prod-key.pub"
+
+# Tu IP para acceso SSH (obtener en: https://checkip.amazonaws.com)
+admin_ip = "190.XXX.XXX.XXX/32"
+
+# ID de la Hosted Zone de Route 53
+route53_zone_id = "Z0XXXXXXXXXXXXXXXXX"
+
+# Dominio del entorno PROD
+domain_name = "app.ccplsolutions.link"
+
+# Email para notificaciones de expiración del certificado SSL
+certbot_email = "tu-email@ejemplo.com"
+
+# Contraseña de PostgreSQL PROD (mínimo 12 caracteres — usar una contraseña fuerte)
+# Generar con: openssl rand -base64 16
+db_password = "CambiarEstaPorUnaContrasenaMuySegura2026!"
+
+# Administrador inicial de la aplicación PROD
+# ⚠  Cambiar la contraseña en el primer login
+admin_seed_email    = "admin@docurural.co"
+admin_seed_password = "AdminProd2026!"
+
+# JWT Secret PROD (mínimo 32 caracteres — usar una clave aleatoria distinta a la de QA)
+# Generar con: openssl rand -base64 48
+jwt_secret = "DocuRuralProdSecretCambiarPorUnaClaveAleatoriaMuyLarga2026"
+
+# PAT de GitHub (mismo que QA o uno dedicado para PROD)
+github_pat = "ghp_XXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Repositorios de GitHub
+github_repo          = "pedro-chavezcastro/docurural-backend"
+github_repo_frontend = "pedro-chavezcastro/docurural-frontend"
+
+# Buckets S3 PROD (nombres distintos a los de QA)
+bucket_docs_name    = "docurural-documentos"
+bucket_backups_name = "docurural-backups"
+
+# CloudWatch
+cloudwatch_log_group = "/docurural/app"
+
+# Presupuesto mensual PROD
+budget_limit = 30
+
+# Email para alertas de billing (al 80% del presupuesto = $24 USD)
+alert_email = "tu-email@ejemplo.com"

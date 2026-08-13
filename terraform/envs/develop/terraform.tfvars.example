@@ -1,0 +1,71 @@
+################################################################################
+# DocuRural — Entorno DEVELOP
+# terraform.tfvars.example — Plantilla de valores
+#
+# INSTRUCCIONES:
+#   1. Copiar: cp terraform.tfvars.example terraform.tfvars
+#   2. Completar todos los valores reales
+#   3. NUNCA subir terraform.tfvars a Git (ya está en .gitignore)
+################################################################################
+
+# Región de AWS
+aws_region = "us-east-1"
+
+# Tipo de instancia — DEVELOP usa t3.micro (entorno liviano; ver advertencia
+# de riesgo de OOM en terraform/modules/ec2/variables.tf). Subir a t3.small
+# si se ven fallos de memoria en los builds de los runners.
+instance_type = "t3.micro"
+
+# Clave SSH — generar con: ssh-keygen -t ed25519 -f ~/.ssh/docurural-develop-key -C "docurural-develop"
+ssh_public_key_path = "~/.ssh/docurural-develop-key.pub"
+
+# Tu IP para acceso SSH (obtener en: https://checkip.amazonaws.com)
+admin_ip = "190.XXX.XXX.XXX/32"
+
+# IPs con acceso a PostgreSQL desde PgAdmin
+qa_ips = [
+  "190.XXX.XXX.XXX/32",   # Desarrollador principal
+  # "190.YYY.YYY.YYY/32", # Desarrollador secundario (descomentar si aplica)
+]
+
+# ID de la Hosted Zone de Route 53
+# Encontrar en: Route 53 → Hosted zones → seleccionar zona → copiar "Hosted zone ID"
+route53_zone_id = "Z0XXXXXXXXXXXXXXXXX"
+
+# Dominio del entorno DEVELOP
+domain_name = "dev.ccplsolutions.link"
+
+# Email para notificaciones de expiración del certificado SSL
+certbot_email = "tu-email@ejemplo.com"
+
+# Contraseña de PostgreSQL (mínimo 12 caracteres)
+db_password = "CambiarEstaContrasena2026!"
+
+# Administrador inicial de la aplicación
+admin_seed_email    = "admin@dev.docurural.co"
+admin_seed_password = "AdminDev2026!"
+
+# JWT Secret (mínimo 32 caracteres)
+# Generar con: openssl rand -base64 48
+jwt_secret = "DocuRuralDevSecretCambiarPorUnaClaveAleatoriaMuyLarga2026"
+
+# PAT de GitHub (permisos: repo, read:packages) — usar uno distinto al de QA/PROD
+# Crear en: GitHub → Settings → Developer settings → Personal access tokens
+github_pat = "ghp_XXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Repositorios de GitHub
+github_repo          = "pedro-chavezcastro/docurural-backend"
+github_repo_frontend = "pedro-chavezcastro/docurural-frontend"
+
+# Buckets S3 (nombres deben ser globalmente únicos en AWS)
+bucket_docs_name    = "docurural-develop-documentos"
+bucket_backups_name = "docurural-develop-backups"
+
+# CloudWatch
+cloudwatch_log_group = "/docurural-develop/app"
+
+# Presupuesto mensual DEVELOP
+budget_limit = 10
+
+# Email para alertas de billing (al 80% del presupuesto)
+alert_email = "tu-email@ejemplo.com"

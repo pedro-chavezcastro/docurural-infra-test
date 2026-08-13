@@ -1,0 +1,69 @@
+################################################################################
+# DocuRural — Entorno QA
+# terraform.tfvars.example — Plantilla de valores
+#
+# INSTRUCCIONES:
+#   1. Copiar: cp terraform.tfvars.example terraform.tfvars
+#   2. Completar todos los valores reales
+#   3. NUNCA subir terraform.tfvars a Git (ya está en .gitignore)
+################################################################################
+
+# Región de AWS
+aws_region = "us-east-1"
+
+# Tipo de instancia — no bajar de t3.small
+instance_type = "t3.small"
+
+# Clave SSH — generar con: ssh-keygen -t ed25519 -f ~/.ssh/docurural-qa-key -C "docurural-qa"
+ssh_public_key_path = "~/.ssh/docurural-qa-key.pub"
+
+# Tu IP para acceso SSH (obtener en: https://checkip.amazonaws.com)
+admin_ip = "190.XXX.XXX.XXX/32"
+
+# IPs del equipo de QA con acceso a PostgreSQL desde PgAdmin
+qa_ips = [
+  "190.XXX.XXX.XXX/32",   # Desarrollador/QA principal
+  # "190.YYY.YYY.YYY/32", # QA secundario (descomentar si aplica)
+]
+
+# ID de la Hosted Zone de Route 53
+# Encontrar en: Route 53 → Hosted zones → seleccionar zona → copiar "Hosted zone ID"
+route53_zone_id = "Z0XXXXXXXXXXXXXXXXX"
+
+# Dominio del entorno QA
+domain_name = "qa.ccplsolutions.link"
+
+# Email para notificaciones de expiración del certificado SSL
+certbot_email = "tu-email@ejemplo.com"
+
+# Contraseña de PostgreSQL (mínimo 12 caracteres)
+db_password = "CambiarEstaContrasena2026!"
+
+# Administrador inicial de la aplicación
+admin_seed_email    = "admin@qa.docurural.co"
+admin_seed_password = "AdminTest2026!"
+
+# JWT Secret (mínimo 32 caracteres)
+# Generar con: openssl rand -base64 48
+jwt_secret = "DocuRuralTestSecretCambiarPorUnaClaveAleatoriaMuyLarga2026"
+
+# PAT de GitHub (permisos: repo, read:packages)
+# Crear en: GitHub → Settings → Developer settings → Personal access tokens
+github_pat = "ghp_XXXXXXXXXXXXXXXXXXXXXXXX"
+
+# Repositorios de GitHub
+github_repo          = "pedro-chavezcastro/docurural-backend"
+github_repo_frontend = "pedro-chavezcastro/docurural-frontend"
+
+# Buckets S3 (nombres deben ser globalmente únicos en AWS)
+bucket_docs_name    = "docurural-qa-documentos"
+bucket_backups_name = "docurural-qa-backups"
+
+# CloudWatch
+cloudwatch_log_group = "/docurural-qa/app"
+
+# Presupuesto mensual QA
+budget_limit = 15
+
+# Email para alertas de billing (al 80% del presupuesto)
+alert_email = "tu-email@ejemplo.com"
