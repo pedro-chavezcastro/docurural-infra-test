@@ -31,7 +31,7 @@ qa_ips = [
 route53_zone_id = "Z0XXXXXXXXXXXXXXXXX"
 
 # Dominio del entorno QA
-domain_name = "pruebas.ccplsolutions.link"
+domain_name = "qa.ccplsolutions.link"
 
 # Email para notificaciones de expiración del certificado SSL
 certbot_email = "tu-email@ejemplo.com"

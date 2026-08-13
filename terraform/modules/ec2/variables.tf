@@ -72,7 +72,7 @@ variable "scripts_bucket_name" {
 }
 
 variable "domain_name" {
-  description = "FQDN del entorno (ej: pruebas.ccplsolutions.link)"
+  description = "FQDN del entorno (ej: qa.ccplsolutions.link)"
   type        = string
 }
 

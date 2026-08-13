@@ -45,9 +45,9 @@ variable "route53_zone_id" {
 }
 
 variable "domain_name" {
-  description = "FQDN del entorno QA (ej: pruebas.ccplsolutions.link)"
+  description = "FQDN del entorno QA (ej: qa.ccplsolutions.link)"
   type        = string
-  default     = "pruebas.ccplsolutions.link"
+  default     = "qa.ccplsolutions.link"
 }
 
 variable "certbot_email" {

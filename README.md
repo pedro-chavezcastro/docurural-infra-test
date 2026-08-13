@@ -119,7 +119,7 @@ Cada entorno bajo `envs/` es un root module completo: tiene su propio `terraform
 
 | | develop | qa | prod |
 |---|---|---|---|
-| Dominio | `dev.ccplsolutions.link` | `pruebas.ccplsolutions.link` | `app.ccplsolutions.link` |
+| Dominio | `dev.ccplsolutions.link` | `qa.ccplsolutions.link` | `app.ccplsolutions.link` |
 | Tipo de instancia | `t3.micro` | `t3.small` | `t3.small` |
 | Disco (EBS) | 10 GB | 20 GB | 30 GB |
 | Perfil Spring | `develop` | `qa` | `prod` |

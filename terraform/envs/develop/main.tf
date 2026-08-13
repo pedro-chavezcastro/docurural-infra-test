@@ -5,7 +5,7 @@
 # Diferencias clave respecto a QA:
 #   - Instancia t3.micro (vs t3.small), EBS 10 GB (vs 20 GB) — entorno liviano
 #   - Presupuesto mensual $10 USD (vs $15 QA)
-#   - Dominio dev.ccplsolutions.link (vs pruebas.ccplsolutions.link)
+#   - Dominio dev.ccplsolutions.link (vs qa.ccplsolutions.link)
 #   - Sin EventBridge (igual que QA — se apaga manualmente para control de costos)
 #
 # Ejecutar desde este directorio:

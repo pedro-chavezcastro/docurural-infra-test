@@ -33,5 +33,5 @@ variable "github_dispatch_token" {
 variable "target_repo" {
   description = "Repositorio destino del repository_dispatch, formato owner/repo"
   type        = string
-  default     = "CCPL-Solutions/docurural-backend"
+  default     = "CCPL-Solutions/project-automation"
 }

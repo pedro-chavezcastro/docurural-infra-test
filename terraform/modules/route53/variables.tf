@@ -14,7 +14,7 @@ variable "zone_id" {
 }
 
 variable "domain_name" {
-  description = "FQDN completo del entorno (ej: pruebas.ccplsolutions.link)"
+  description = "FQDN completo del entorno (ej: qa.ccplsolutions.link)"
   type        = string
 }
 
