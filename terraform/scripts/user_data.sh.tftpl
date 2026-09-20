@@ -370,10 +370,12 @@ useradd -m -s /bin/bash github-runner 2>/dev/null || true
 
 # Asignar directorios de despliegue al runner
 chown github-runner:github-runner /opt/docurural/backend
-chown github-runner:github-runner /opt/docurural/frontend
+# -R en frontend: el placeholder dist/ (paso 5) quedó como ubuntu:ubuntu y el
+# deploy necesita crear dist/browser.bak junto a dist/browser.
+chown -R github-runner:github-runner /opt/docurural/frontend
 usermod -aG github-runner ubuntu
 chmod g+w /opt/docurural/backend
-chmod g+w /opt/docurural/frontend
+chmod -R g+w /opt/docurural/frontend
 
 # Descargar la versión más reciente del runner
 RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest \

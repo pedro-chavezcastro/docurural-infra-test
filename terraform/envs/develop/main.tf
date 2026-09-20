@@ -120,7 +120,7 @@ module "ec2" {
   env                    = "develop"
   aws_region             = var.aws_region
   instance_type          = var.instance_type
-  ebs_size               = 10 # DEVELOP: 10 GB — entorno liviano
+  ebs_size               = 20 # DEVELOP: 10 GB — entorno liviano
   key_name               = "docurural-develop-key"
   ssh_public_key_path    = var.ssh_public_key_path
   admin_ip               = var.admin_ip
