@@ -23,7 +23,7 @@ Infraestructura como código (Terraform) para los entornos de DocuRural en AWS: 
 Cada entorno es una única instancia EC2 pública (Ubuntu 24.04 LTS, AMI oficial de Canonical) en la **VPC y subred por defecto** de la cuenta — el repo no crea VPC, subredes, NAT ni Internet Gateway propios. Sobre esa instancia conviven:
 
 - **PostgreSQL** local (no hay RDS).
-- **Nginx** como único reverse proxy: sirve el frontend estático y expone `/api/` hacia Spring Boot en `localhost:8080`.
+- **Nginx** como único reverse proxy: sirve el frontend estático y expone `/api/` hacia Spring Boot en `localhost:8080`. El frontend es un build por idioma (`@angular/localize`): `/es/` y `/en/`; la raíz y los enlaces sin idioma redirigen a `/es/` (o a `/en/` si el navegador prefiere inglés).
 - El servicio systemd `docurural` — la unit se crea, pero **no se arranca** hasta que un runner despliegue el JAR.
 - El **agente de CloudWatch**, enviando `/opt/docurural/logs/app.log` al log group del entorno.
 - **Dos runners self-hosted de GitHub Actions** (backend y frontend), que son quienes finalmente compilan y despliegan la aplicación.
@@ -280,10 +280,10 @@ No derivan de `env` y deben pasarse explícitos en cada `terraform.tfvars`: nomb
 2. Instala Java 17, Maven y Node.js 20 — **toolchain de compilación para los runners**, no para la infraestructura en sí.
 3. Instala y configura PostgreSQL (escucha en `0.0.0.0` solo si `pg_remote_access = true`).
 4. Instala Nginx.
-5. Crea la estructura de directorios en `/opt/docurural` y un `index.html` placeholder (para que Nginx y el reto HTTP-01 de certbot tengan algo que servir antes del primer deploy real). *(5b)* Configura un swapfile de 2 GB.
+5. Crea la estructura de directorios en `/opt/docurural` y un `index.html` placeholder en `dist/browser/es/` y `dist/browser/en/` (para que Nginx y el reto HTTP-01 de certbot tengan algo que servir antes del primer deploy real). *(5b)* Configura un swapfile de 2 GB.
 6. Genera `/opt/docurural/backend/.env` (sin secretos — esos los inyecta Spring Cloud AWS desde SSM).
 7. Crea la unit systemd `docurural.service` (sin arrancarla).
-8. Configura el vhost de Nginx, incluido el proxy `/api/` hacia `localhost:8080`.
+8. Configura el vhost de Nginx: el proxy `/api/` hacia `localhost:8080` y el frontend por idioma, en `/etc/nginx/snippets/docurural-frontend.conf` (rutas `/es/` y `/en/`, redirección de la raíz) y `/etc/nginx/conf.d/docurural-lang.conf` (idioma por defecto según `Accept-Language`).
 9. Emite el certificado TLS con certbot (espera hasta 5 minutos a que el DNS propague).
 10. Instala y configura el agente de CloudWatch.
 11. Crea `backup.sh` y su cron diario (`pg_dump` → S3, 2 AM).

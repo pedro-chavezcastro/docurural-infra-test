@@ -109,12 +109,15 @@ chown -R ubuntu:ubuntu /opt/docurural
 # Placeholder de infraestructura para Nginx: nada de esto es un deploy de la
 # app — solo da un root valido para que "nginx -t" y el reto HTTP-01 de
 # Certbot funcionen antes de que el runner de CI/CD despliegue el build real.
-mkdir -p /opt/docurural/frontend/dist/browser
-cat > /opt/docurural/frontend/dist/browser/index.html <<'HTML'
+# El frontend es un build por idioma (/es/, /en/; ver el paso 8).
+for lang in es en; do
+  mkdir -p "/opt/docurural/frontend/dist/browser/$lang"
+  cat > "/opt/docurural/frontend/dist/browser/$lang/index.html" <<'HTML'
 <!doctype html><meta charset="utf-8">
 <title>DocuRural — infraestructura lista</title>
 <p>Infraestructura aprovisionada. Sin aplicacion desplegada.</p>
 HTML
+done
 chown -R ubuntu:ubuntu /opt/docurural/frontend
 
 # ------------------------------------------------------------------------------
@@ -204,18 +207,52 @@ systemctl daemon-reload
 # Certbot completará el bloque HTTPS y el redirect 80→443 en el paso 9.
 # ------------------------------------------------------------------------------
 echo "[8/12] Configurando Nginx (HTTP inicial)..."
+
+# Frontend Angular: un build por idioma (@angular/localize), servido en /es/ y /en/. Las
+# rutas del frontend van en un snippet que se incluye en el vhost: certbot (paso 9) copia el
+# include al bloque HTTPS.
+cat > /etc/nginx/conf.d/docurural-lang.conf <<'NGINX'
+# Idioma por defecto al entrar sin idioma en la URL: inglés si el navegador lo prefiere.
+map $http_accept_language $docurural_lang {
+    default es;
+    ~*^en   en;
+}
+NGINX
+
+cat > /etc/nginx/snippets/docurural-frontend.conf <<'NGINX'
+# Frontend Angular (archivos estáticos compilados): un build por idioma.
+root /opt/docurural/frontend/dist/browser;
+index index.html;
+
+location ~ ^/(es|en)$ {
+    return 301 $uri/;
+}
+
+location /es/ {
+    try_files $uri $uri/ /es/index.html;
+}
+
+location /en/ {
+    try_files $uri $uri/ /en/index.html;
+}
+
+# Raíz y enlaces sin idioma (/documents/5 → /es/documents/5). Los archivos de la raíz, como
+# version.json (health check del deploy), se sirven tal cual.
+location / {
+    try_files $uri @docurural_lang;
+}
+
+location @docurural_lang {
+    return 302 /$docurural_lang$request_uri;
+}
+NGINX
+
 cat > /etc/nginx/sites-available/docurural <<NGINX
 server {
     listen 80;
     server_name ${domain_name};
 
-    # Frontend Angular (archivos estáticos compilados)
-    root /opt/docurural/frontend/dist/browser;
-    index index.html;
-
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
+    include snippets/docurural-frontend.conf;
 
     # API Backend — proxy a Spring Boot en puerto 8080 (nunca expuesto al exterior)
     location /api/ {
